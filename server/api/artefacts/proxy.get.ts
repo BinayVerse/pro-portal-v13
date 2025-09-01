@@ -27,14 +27,6 @@ export default defineEventHandler(async (event) => {
             contentType: response.headers['content-type'],
         }
     } catch (error: any) {
-        console.error('Error fetching file:', {
-            url: fileUrl,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            message: error.message,
-            code: error.code
-        })
-
         setResponseStatus(event, error.response?.status || 500)
 
         const errorMessage = error.response?.status === 403

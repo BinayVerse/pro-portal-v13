@@ -80,7 +80,6 @@ export default defineEventHandler(async (event) => {
             message: 'Document summarized successfully',
         }
     } catch (err: any) {
-        console.error('Error summarizing document:', err)
         throw new CustomError(err.message || 'Failed to summarize document', 500)
     }
 })

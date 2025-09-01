@@ -278,7 +278,6 @@ const renderContentByFileType = async (fileType: string, fileUrl: string) => {
         viewContent.value = `<p>Unable to preview this file. <a href="${fileUrl}" class="text-primary-400 hover:text-primary-300" download>Download the file here</a>.</p>`
     }
   } catch (error) {
-    console.error('Error rendering content:', error)
     viewContent.value = `<p>Failed to load the file. <a href="${fileUrl}" download class="text-primary-400 hover:text-primary-300">Download the file here</a>.</p>`
   }
 }

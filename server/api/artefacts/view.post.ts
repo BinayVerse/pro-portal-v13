@@ -95,7 +95,6 @@ export default defineEventHandler(async (event) => {
                 }
 
             } catch (err) {
-                console.error('Error parsing document URL:', err)
                 // Fallback to constructing the path
                 const companyName = org_name.toLowerCase().replace(/ /g, '_')
                 fileKey = `${folderName}/${companyName}/files/${fileName}`
@@ -132,8 +131,6 @@ export default defineEventHandler(async (event) => {
             })
             const headResult = await s3.send(headCommand)
         } catch (headError: any) {
-            console.error('File not found in S3 with decoded path:', headError)
-
             // Try different variations of the file path
             const pathVariations = [
                 fileKey, // Original decoded path
@@ -194,8 +191,6 @@ export default defineEventHandler(async (event) => {
             docType: doc.doc_type
         }
     } catch (error: any) {
-        console.error('Error generating signed URL:', error)
-
         if (error?.$metadata?.httpStatusCode === 404 || error?.name === 'NotFound') {
             setResponseStatus(event, 404)
             throw new CustomError('File not found in storage', 404)
