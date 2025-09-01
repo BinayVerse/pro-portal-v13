@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  stage:
+    image: admin-01:latest
+    ports:
+      - '80:80'
+    env_file:
+      - .env
+    labels:
+      - service.stack=nuxt
+      - service.name=whatsapp-bot
+      - container.type=fullstack
+    networks:
+      - nuxt-internal
+    logging:
+      driver: json-file
+      options:
+        max-file: '10'
+        max-size: 10m
+
+networks:
+  nuxt-internal:
