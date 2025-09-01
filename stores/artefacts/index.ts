@@ -630,5 +630,59 @@ export const useArtefactsStore = defineStore('artefacts', {
         }
       }
     },
+
+    // Check if file exists
+    async checkFileExists(fileName: string) {
+      try {
+        const token = process.client ? localStorage.getItem('authToken') : null
+        if (!token) {
+          throw new Error('Authentication required')
+        }
+
+        const response = await $fetch<{
+          statusCode: number
+          status: string
+          exists: boolean
+          fileInfo?: {
+            id: number
+            name: string
+            category: string
+            lastUpdated: string
+          }
+        }>('/api/artefacts/check-exists', {
+          method: 'POST',
+          body: { fileName },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.status === 'error') {
+          throw new Error('Failed to check file existence')
+        }
+
+        return {
+          success: true,
+          exists: response.exists,
+          fileInfo: response.fileInfo
+        }
+      } catch (error: any) {
+        // Handle authentication errors
+        if (error.statusCode === 401 || error.response?.status === 401) {
+          if (process.client) {
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('authUser')
+          }
+          await navigateTo('/login')
+          throw new Error('Session expired. Please log in again.')
+        }
+
+        return {
+          success: false,
+          exists: false,
+          message: this.handleError(error, 'Failed to check file existence')
+        }
+      }
+    },
   },
 })

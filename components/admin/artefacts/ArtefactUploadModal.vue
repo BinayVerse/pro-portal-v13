@@ -1,4 +1,13 @@
 <template>
+  <!-- File Replacement Modal -->
+  <FileReplacementModal
+    v-model:isOpen="showReplacementModal"
+    :fileName="pendingUpload.fileName"
+    :category="pendingUpload.existingCategory"
+    @replace="proceedWithUpload"
+    @cancel="cancelUpload"
+  />
+
   <UModal
     :model-value="isOpen"
     @update:model-value="canCloseModal ? $emit('update:isOpen', $event) : null"
@@ -513,6 +522,7 @@ import {
   useGoogleDrive,
   type GoogleDriveFile as GoogleOAuthFile,
 } from '~/composables/useGoogleDrive'
+import FileReplacementModal from '~/components/ui/FileReplacementModal.vue'
 
 interface GoogleDriveFile {
   id: string
@@ -617,6 +627,15 @@ const state = reactive({
   file: null as File | null,
   category: '',
   description: '',
+})
+
+// File replacement modal state
+const showReplacementModal = ref(false)
+const pendingUpload = reactive({
+  fileName: '',
+  category: '', // The category user selected for new upload
+  existingCategory: '', // The category the existing file is currently in
+  formData: null as FormData | null,
 })
 
 // Drag and drop state
@@ -801,6 +820,32 @@ const onSubmit = async (event: FormSubmitEvent<Schema>) => {
     formData.append('category', event.data.category)
     formData.append('description', event.data.description || '')
 
+    // Check if file already exists
+    const fileName = event.data.file.name.replace(/\s+/g, '_')
+    const existsResult = await artefactsStore.checkFileExists(fileName)
+
+    if (existsResult.success && existsResult.exists) {
+      // Show replacement modal with existing file's category
+      pendingUpload.fileName = fileName
+      pendingUpload.category = event.data.category
+      pendingUpload.existingCategory = existsResult.fileInfo?.category || 'Unknown'
+      pendingUpload.formData = formData
+      showReplacementModal.value = true
+      isUploading.value = false
+      return
+    }
+
+    // Proceed with upload if file doesn't exist
+    await performUpload(formData)
+  } catch (error) {
+    showError('Upload failed. Please try again.')
+    isUploading.value = false
+  }
+}
+
+// Perform the actual upload
+const performUpload = async (formData: FormData) => {
+  try {
     // Call the store upload method
     const result = await artefactsStore.uploadArtefact(formData)
 
@@ -830,6 +875,22 @@ const onSubmit = async (event: FormSubmitEvent<Schema>) => {
     // Always reset loading state
     isUploading.value = false
   }
+}
+
+// Handle replacement modal actions
+const proceedWithUpload = async () => {
+  if (pendingUpload.formData) {
+    isUploading.value = true
+    await performUpload(pendingUpload.formData)
+  }
+}
+
+const cancelUpload = () => {
+  pendingUpload.fileName = ''
+  pendingUpload.category = ''
+  pendingUpload.existingCategory = ''
+  pendingUpload.formData = null
+  isUploading.value = false
 }
 
 // Google Drive methods
@@ -887,6 +948,26 @@ const uploadFromGoogleDrive = async () => {
   }
 
   try {
+    // Check for existing files and show notification
+    const existingFiles: { name: string; category: string }[] = []
+    for (const file of selectedGoogleDriveFiles.value) {
+      const fileName = file.name.replace(/\s+/g, '_')
+      const existsResult = await artefactsStore.checkFileExists(fileName)
+      if (existsResult.success && existsResult.exists) {
+        existingFiles.push({
+          name: file.name,
+          category: existsResult.fileInfo?.category || 'Unknown'
+        })
+      }
+    }
+
+    if (existingFiles.length > 0) {
+      const fileList = existingFiles.map(f => `"${f.name}" (currently in ${f.category})`).join(', ')
+      showWarning(
+        `The following files already exist and will be overwritten: ${fileList}`
+      )
+    }
+
     // Call the store method to upload files
     const result = await artefactsStore.uploadGoogleDriveFiles(
       selectedGoogleDriveFiles.value,
@@ -948,16 +1029,22 @@ const handleGoogleOAuthSignIn = async () => {
 
       try {
         // Check for existing files
-        const existingFileNames: string[] = []
-        selectedFiles.forEach((file: GoogleOAuthFile) => {
-          if (googleDrive.checkFileExistence(file.name, [])) {
-            existingFileNames.push(file.name)
+        const existingFiles: { name: string; category: string }[] = []
+        for (const file of selectedFiles) {
+          const fileName = file.name.replace(/\s+/g, '_')
+          const existsResult = await artefactsStore.checkFileExists(fileName)
+          if (existsResult.success && existsResult.exists) {
+            existingFiles.push({
+              name: file.name,
+              category: existsResult.fileInfo?.category || 'Unknown'
+            })
           }
-        })
+        }
 
-        if (existingFileNames.length > 0) {
+        if (existingFiles.length > 0) {
+          const fileList = existingFiles.map(f => `"${f.name}" (currently in ${f.category})`).join(', ')
           showWarning(
-            `The following files already exist: ${existingFileNames.join(', ')}. They will be replaced.`,
+            `The following files already exist and will be overwritten: ${fileList}`,
           )
         }
 
@@ -1125,6 +1212,13 @@ const resetAllFields = () => {
     googleDriveState.category = ''
     googleDriveState.url = ''
     selectedGoogleDriveFiles.value = []
+
+    // Reset replacement modal state
+    showReplacementModal.value = false
+    pendingUpload.fileName = ''
+    pendingUpload.category = ''
+    pendingUpload.existingCategory = ''
+    pendingUpload.formData = null
 
     // Perform comprehensive cleanup
     performComprehensiveCleanup()
