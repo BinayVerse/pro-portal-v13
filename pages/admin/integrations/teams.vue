@@ -1,221 +1,434 @@
 <template>
-  <AdminLayout>
-    <div class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-            <div class="w-8 h-8 bg-blue-500 rounded"></div>
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold text-white">Microsoft Teams Integration</h1>
-            <p class="text-gray-400">Connect your Teams workspace to provento</p>
-          </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+          <UIcon name="simple-icons:microsoftteams" class="w-6 h-6 text-white" />
         </div>
-        <div class="flex items-center space-x-4">
-          <span
-            class="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-          >
-            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span>Connected</span>
-          </span>
-          <button
-            @click="showDisconnectModal = true"
-            class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
-          >
-            <UIcon name="heroicons:link-slash" class="w-4 h-4" />
-            <span>Disconnect</span>
-          </button>
+        <div>
+          <h1 class="text-2xl font-bold text-white">Microsoft Teams Integration</h1>
+          <p class="text-gray-400">Connect your Teams workspace to provento</p>
         </div>
       </div>
-
-      <!-- Configuration Form -->
-      <div v-if="config.isConnected" class="grid md:grid-cols-2 gap-6">
-        <!-- Teams Configuration -->
-        <div class="bg-dark-800 rounded-lg p-6 border border-dark-700">
-          <h2 class="text-lg font-semibold text-white mb-6">Teams Configuration</h2>
-
-          <div class="space-y-4">
-            <div>
-              <label class="block text-gray-300 text-sm mb-2">Tenant ID</label>
-              <input
-                v-model="config.tenantId"
-                type="text"
-                readonly
-                class="input-field w-full bg-dark-700 text-gray-300"
-              />
-            </div>
-
-            <div>
-              <label class="block text-gray-300 text-sm mb-2">Application ID</label>
-              <input
-                v-model="config.applicationId"
-                type="text"
-                readonly
-                class="input-field w-full bg-dark-700 text-gray-300"
-              />
-            </div>
-
-            <div>
-              <label class="block text-gray-300 text-sm mb-2">Client Secret</label>
-              <div class="relative">
-                <input
-                  :type="showClientSecret ? 'text' : 'password'"
-                  v-model="config.clientSecret"
-                  readonly
-                  class="input-field w-full bg-dark-700 text-gray-300 pr-10"
-                />
-                <button
-                  @click="showClientSecret = !showClientSecret"
-                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      v-if="showClientSecret"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
-                    ></path>
-                    <path
-                      v-else
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    ></path>
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Connection Status -->
-        <div class="bg-dark-800 rounded-lg p-6 border border-dark-700">
-          <h2 class="text-lg font-semibold text-white mb-6">Connection Status</h2>
-
-          <div class="space-y-4">
-            <div class="flex items-center justify-between p-3 bg-dark-900 rounded-lg">
-              <span class="text-gray-300">Status:</span>
-              <span class="text-green-400 font-medium flex items-center gap-2">
-                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-                Connected
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between p-3 bg-dark-900 rounded-lg">
-              <span class="text-gray-300">Users:</span>
-              <span class="text-white font-medium">{{ config.users }}</span>
-            </div>
-
-            <div class="flex items-center justify-between p-3 bg-dark-900 rounded-lg">
-              <span class="text-gray-300">Last Sync:</span>
-              <span class="text-white font-medium">{{ config.lastSync }}</span>
-            </div>
-
-            <div class="flex items-center justify-between p-3 bg-dark-900 rounded-lg">
-              <span class="text-gray-300">Messages Today:</span>
-              <span class="text-white font-medium">{{ config.messagesToday }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Disconnected State -->
-      <div v-else class="bg-dark-800 rounded-lg p-8 border border-dark-700 text-center">
-        <div
-          class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4"
+      <div class="flex items-center space-x-4">
+        <!-- Status Badge -->
+        <span
+          v-if="connectionStatus.isConnected"
+          class="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
         >
-          <div class="w-8 h-8 bg-blue-500 rounded"></div>
-        </div>
-        <h3 class="text-xl font-semibold text-white mb-2">Teams Not Connected</h3>
-        <p class="text-gray-400 mb-6">
-          Connect your Microsoft Teams workspace to start using provento integration
-        </p>
-        <button @click="connectTeams" class="btn-primary">Connect Microsoft Teams</button>
-      </div>
+          <UIcon name="heroicons:check-circle" class="w-4 h-4" />
+          <span>Connected</span>
+        </span>
+        <span
+          v-else-if="connectionStatus.hasBeenConnected"
+          class="bg-yellow-500/20 text-yellow-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+        >
+          <UIcon name="heroicons:exclamation-circle" class="w-4 h-4" />
+          <span>Disconnected</span>
+        </span>
+        <span
+          v-else
+          class="bg-gray-500/20 text-gray-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+        >
+          <UIcon name="heroicons:minus-circle" class="w-4 h-4" />
+          <span>Not configured</span>
+        </span>
 
-      <!-- Disconnect Confirmation Modal -->
-      <div
-        v-if="showDisconnectModal"
-        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-        @click="showDisconnectModal = false"
-      >
-        <div class="bg-dark-900 rounded-xl p-6 w-full max-w-md" @click.stop>
-          <h3 class="text-xl font-bold text-white mb-4">Disconnect Teams Integration</h3>
+        <!-- Action Button -->
+        <UButton
+          v-if="connectionStatus.isConnected"
+          @click="showDisconnectModal = true"
+          :loading="integrationsStore.loading"
+          color="red"
+          icon="heroicons:link-slash"
+        >
+          Disconnect
+        </UButton>
 
-          <p class="text-gray-300 mb-6">
-            Are you sure you want to disconnect your Microsoft Teams workspace? This will stop all
-            message processing and remove access to the provento bot.
-          </p>
+        <UButton
+          v-else-if="connectionStatus.hasBeenConnected"
+          @click="launchTeamsOAuthRedirect"
+          color="blue"
+          icon="heroicons:arrow-path"
+        >
+          Reconnect
+        </UButton>
 
-          <div class="flex justify-end space-x-3">
-            <button @click="showDisconnectModal = false" class="btn-secondary">Cancel</button>
-            <button @click="disconnectTeams" class="btn-destructive">Disconnect</button>
-          </div>
-        </div>
+        <UButton v-else @click="launchTeamsOAuthRedirect" color="blue" icon="heroicons:plus">
+          Connect
+        </UButton>
       </div>
     </div>
-  </AdminLayout>
+
+    <!-- Main Content Grid -->
+    <div class="grid lg:grid-cols-2 gap-6">
+      <!-- Teams Configuration -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center space-x-2">
+            <UIcon name="heroicons:cog-6-tooth" class="w-5 h-5 text-gray-400" />
+            <h2 class="text-lg font-semibold text-white">Teams Configuration</h2>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <!-- Loading State -->
+          <div v-if="integrationsStore.loading" class="space-y-4">
+            <div class="animate-pulse">
+              <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 mb-2"></div>
+              <div class="h-10 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            </div>
+            <div class="animate-pulse">
+              <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 mb-2"></div>
+              <div class="h-10 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            </div>
+            <div class="animate-pulse">
+              <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 mb-2"></div>
+              <div class="h-10 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div v-else class="space-y-4">
+            <!-- Tenant ID -->
+            <UFormGroup label="Tenant ID">
+              <UInput
+                :model-value="teamsConfig.tenantId || 'Not configured'"
+                readonly
+                icon="heroicons:building-office"
+              />
+            </UFormGroup>
+
+            <!-- Application ID -->
+            <UFormGroup label="Application ID">
+              <UInput
+                :model-value="teamsConfig.applicationId || 'Not configured'"
+                readonly
+                icon="heroicons:identification"
+              />
+            </UFormGroup>
+
+            <!-- Consent Status -->
+            <UFormGroup label="Admin Consent">
+              <div class="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <UIcon :name="consentStatus.icon" :class="consentStatus.color" class="w-5 h-5" />
+                <span :class="consentStatus.color" class="font-medium">
+                  {{ consentStatus.text }}
+                </span>
+              </div>
+            </UFormGroup>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Connection Status -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center space-x-2">
+            <UIcon name="heroicons:signal" class="w-5 h-5 text-gray-400" />
+            <h2 class="text-lg font-semibold text-white">Connection Status</h2>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <!-- Status -->
+          <div
+            class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700"
+          >
+            <span class="text-gray-600 dark:text-gray-300">Status:</span>
+            <span
+              v-if="connectionStatus.isConnected"
+              class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-sm font-medium flex items-center space-x-1"
+            >
+              <UIcon name="heroicons:check-circle" class="w-3 h-3" />
+              <span>Connected</span>
+            </span>
+            <span
+              v-else-if="connectionStatus.hasBeenConnected"
+              class="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-sm font-medium flex items-center space-x-1"
+            >
+              <UIcon name="heroicons:exclamation-circle" class="w-3 h-3" />
+              <span>Disconnected</span>
+            </span>
+            <span
+              v-else
+              class="bg-gray-500/20 text-gray-400 px-2 py-1 rounded text-sm font-medium flex items-center space-x-1"
+            >
+              <UIcon name="heroicons:minus-circle" class="w-3 h-3" />
+              <span>Not configured</span>
+            </span>
+          </div>
+
+          <!-- Tenant ID -->
+          <div
+            class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700"
+          >
+            <span class="text-gray-600 dark:text-gray-300">Tenant ID:</span>
+            <span class="text-gray-900 dark:text-white font-medium text-sm">
+              {{ teamsConfig.tenantId || 'Not configured' }}
+            </span>
+          </div>
+
+          <!-- Application ID -->
+          <div
+            class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700"
+          >
+            <span class="text-gray-600 dark:text-gray-300">Application ID:</span>
+            <span class="text-gray-900 dark:text-white font-medium text-sm">
+              {{ teamsConfig.applicationId || 'Not configured' }}
+            </span>
+          </div>
+
+          <!-- Integration Status -->
+          <div class="flex items-center justify-between py-3">
+            <span class="text-gray-600 dark:text-gray-300">Integration:</span>
+            <span class="text-gray-900 dark:text-white font-medium">
+              {{
+                connectionStatus.isConnected
+                  ? 'Active'
+                  : connectionStatus.hasBeenConnected
+                    ? 'Inactive'
+                    : 'Not setup'
+              }}
+            </span>
+          </div>
+        </div>
+      </UCard>
+    </div>
+
+    <!-- Download Section -->
+    <UCard v-if="connectionStatus.isConnected || connectionStatus.hasBeenConnected">
+      <template #header>
+        <div class="flex items-center space-x-2">
+          <UIcon name="heroicons:arrow-down-tray" class="w-5 h-5 text-blue-400" />
+          <h3 class="text-lg font-semibold text-white">Teams App Package</h3>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="font-medium text-gray-900 dark:text-white">Download Teams App Package</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              After giving consent, download and upload our Teams app package to your Microsoft
+              Teams admin portal.
+            </p>
+          </div>
+          <div class="relative">
+            <UButton
+              @click="downloadTeamsApp"
+              :disabled="!connectionStatus.isConnected"
+              :loading="integrationsStore.manifestDownloading"
+              color="blue"
+              icon="heroicons:arrow-down-tray"
+              v-if="connectionStatus.isConnected"
+            >
+              Download Package
+            </UButton>
+            <UTooltip
+              v-else
+              text="After giving consent, the Teams app package will be available for download."
+            >
+              <UButton disabled color="gray" icon="heroicons:arrow-down-tray">
+                Download Package
+              </UButton>
+            </UTooltip>
+          </div>
+        </div>
+
+        <div
+          class="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+        >
+          <UIcon name="heroicons:information-circle" class="w-5 h-5 text-blue-500" />
+          <div class="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Note:</strong> Upload the downloaded package to your Microsoft Teams admin
+            center to complete the integration.
+          </div>
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Disconnect Confirmation Modal -->
+    <UModal v-model="showDisconnectModal">
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <template #header>
+          <div class="flex items-center space-x-3">
+            <UIcon name="heroicons:exclamation-triangle" class="w-6 h-6 text-red-500" />
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              Disconnect Teams Integration
+            </h3>
+          </div>
+        </template>
+
+        <div class="space-y-3">
+          <p class="text-gray-600 dark:text-gray-300">
+            Are you sure you want to disconnect your Microsoft Teams workspace? This action will:
+          </p>
+          <ul class="text-sm text-gray-500 dark:text-gray-400 space-y-1 ml-4">
+            <li>• Stop all message processing</li>
+            <li>• Disable bot notifications</li>
+            <li>• Require re-authentication to reconnect</li>
+            <li>• Remove admin consent</li>
+          </ul>
+          <p class="text-sm text-red-600 dark:text-red-400 font-medium">
+            This action cannot be undone.
+          </p>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end space-x-3">
+            <UButton
+              @click="showDisconnectModal = false"
+              :disabled="integrationsStore.loading"
+              color="gray"
+              variant="ghost"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              @click="disconnectTeams"
+              :loading="integrationsStore.loading"
+              color="red"
+              icon="heroicons:link-slash"
+            >
+              Disconnect
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
+  </div>
 </template>
 
 <script setup lang="ts">
+// Using admin layout
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
 })
-import { ref } from 'vue'
-import { useNotification } from '@/composables/useNotification'
 
-const { showNotification } = useNotification()
+const config = useRuntimeConfig()
+const route = useRoute()
+const router = useRouter()
+const integrationsStore = useIntegrationsStore()
 
+// Reactive data
 const showDisconnectModal = ref(false)
-const showClientSecret = ref(false)
+const token = ref('')
 
-const config = ref({
-  isConnected: true,
-  tenantId: 'a10c3de4-e578-7690-a0ef-ef234567890',
-  applicationId: 'b2c5d6e4-f8a1-4cdc-a234-567890123',
-  clientSecret: '***************',
-  users: 89,
-  lastSync: '5 minutes ago',
-  messagesToday: 400,
+// Computed properties for Teams configuration
+const teamsConfig = computed(() => {
+  const details = integrationsStore.teamsAppDetails
+  return {
+    tenantId: details?.tenant_id || null,
+    applicationId: details?.app_id || null,
+  }
 })
 
-const testConnection = () => {
-  showNotification('Testing Teams connection...', 'info')
+// Computed properties for connection status
+const connectionStatus = computed(() => {
+  const details = integrationsStore.teamsAppDetails
+  const isConnected = details?.status === 'active'
+  const hasBeenConnected =
+    details && details.tenant_id && details.app_id && details.status !== 'active'
 
-  // Simulate test
-  setTimeout(() => {
-    showNotification('Teams connection test successful!', 'success')
-  }, 1500)
+  return {
+    isConnected,
+    hasBeenConnected: Boolean(hasBeenConnected),
+    neverConnected: !details || (!details.tenant_id && !details.app_id),
+  }
+})
+
+// Computed property for consent status
+const consentStatus = computed(() => {
+  if (connectionStatus.value.isConnected) {
+    return {
+      text: 'Consent Given',
+      icon: 'heroicons:check-circle',
+      color: 'text-green-600',
+    }
+  } else if (connectionStatus.value.hasBeenConnected) {
+    return {
+      text: 'Consent Revoked',
+      icon: 'heroicons:x-circle',
+      color: 'text-red-600',
+    }
+  } else {
+    return {
+      text: 'Consent Not Given',
+      icon: 'heroicons:x-circle',
+      color: 'text-gray-600',
+    }
+  }
+})
+
+// Methods
+const launchTeamsOAuthRedirect = async () => {
+  token.value = localStorage.getItem('authToken') || ''
+
+  if (!token.value) {
+    const { showError } = useNotification()
+    showError('User token missing.')
+    return
+  }
+
+  try {
+    // Simple base64 decode to get org_id (similar to jwtDecode)
+    const payload = JSON.parse(atob(token.value.split('.')[1]))
+    const orgId = payload.org_id
+
+    if (!orgId) {
+      const { showError } = useNotification()
+      showError('Organization ID missing in token.')
+      return
+    }
+
+    const redirectUri = config.public.microsoftRedirectUri
+    const clientId = config.public.microsoftAppId
+    const query = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      state: orgId,
+      response_type: 'code',
+    })
+
+    window.location.href = `https://login.microsoftonline.com/common/adminconsent?${query.toString()}`
+  } catch (e) {
+    console.error('JWT decode or OAuth redirect failed:', e)
+    const { showError } = useNotification()
+    showError('Something went wrong. Please try again.')
+  }
 }
 
-const openTeams = () => {
-  showNotification('Opening Microsoft Teams...', 'info')
-  // In real implementation, this would open Teams
-}
-
-const connectTeams = () => {
-  showNotification('Redirecting to Microsoft Teams authorization...', 'info')
-
-  // Simulate connection process
-  setTimeout(() => {
-    config.value.isConnected = true
-    showNotification('Microsoft Teams connected successfully!', 'success')
-  }, 2000)
-}
-
-const disconnectTeams = () => {
-  config.value.isConnected = false
+const disconnectTeams = async () => {
+  await integrationsStore.disconnectTeamsApp()
   showDisconnectModal.value = false
-  showNotification('Microsoft Teams disconnected', 'success')
 }
+
+const downloadTeamsApp = async () => {
+  await integrationsStore.downloadManifest()
+}
+
+// Lifecycle
+onMounted(async () => {
+  // Handle OAuth redirect if present
+  const { code, state } = route.query
+  if (code && state) {
+    const { showInfo } = useNotification()
+    showInfo('Teams authorization received. Processing...')
+
+    // Clear query parameters
+    setTimeout(() => {
+      router?.replace({ path: router.currentRoute.value.path, query: {} })
+    }, 3000)
+  }
+
+  // Fetch current Teams details
+  await integrationsStore.fetchTeamsAppDetails()
+})
+
+useHead({
+  title: 'Microsoft Teams Integration - Admin Dashboard',
+})
 </script>

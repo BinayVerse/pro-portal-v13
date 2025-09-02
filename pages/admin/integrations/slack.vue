@@ -8,7 +8,7 @@
         </div>
         <div>
           <h1 class="text-2xl font-bold text-white">Slack Integration</h1>
-          <p class="text-gray-400">Connect your Slack workspace to DocChat</p>
+          <p class="text-gray-400">Connect your Slack workspace to provento</p>
         </div>
       </div>
       <div class="flex items-center space-x-4">

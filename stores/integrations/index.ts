@@ -11,6 +11,9 @@ export const useIntegrationsStore = defineStore('integrations', {
     lastFetched: null as Date | null,
     slackAppDetails: null as any | null,
     slackAppStatus: true,
+    teamsAppDetails: null as any | null,
+    teamsAppStatus: true,
+    manifestDownloading: false,
   }),
 
   getters: {
@@ -414,6 +417,105 @@ export const useIntegrationsStore = defineStore('integrations', {
         }
       } finally {
         this.loading = false;
+      }
+    },
+
+    // Teams integration methods
+    async fetchTeamsAppDetails() {
+      try {
+        this.loading = true;
+        this.teamsAppStatus = true;
+
+        const response = await $fetch<{ statusCode: number; message: string; data: any }>('/api/integrations/teams/details', {
+          headers: this.getAuthHeaders(),
+        });
+
+        this.teamsAppDetails = response.data;
+        this.teamsAppStatus = response.data?.status === 'active' ? false : true;
+        return response.data;
+      } catch (error) {
+        // Handle authentication errors first
+        if (!await this.handleAuthError(error)) {
+          this.error = this.handleError(error, 'Failed to fetch Teams app details');
+        }
+        // Reset details on error
+        this.teamsAppDetails = null;
+        this.teamsAppStatus = true;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async disconnectTeamsApp() {
+      try {
+        this.loading = true;
+
+        await $fetch('/api/integrations/teams/disconnect', {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+        });
+
+        await this.fetchTeamsAppDetails();
+
+        // Show success notification
+        if (process.client) {
+          const { showSuccess } = useNotification();
+          showSuccess('Teams disconnected successfully!');
+        }
+      } catch (error) {
+        // Handle authentication errors first
+        if (!await this.handleAuthError(error)) {
+          this.error = this.handleError(error, 'Failed to disconnect Teams');
+
+          // Show error notification
+          if (process.client) {
+            const { showError } = useNotification();
+            showError(this.error);
+          }
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async downloadManifest() {
+      try {
+        this.manifestDownloading = true;
+
+        const response = await $fetch<any>('/api/integrations/teams/download-manifest', {
+          method: 'GET',
+          headers: this.getAuthHeaders(),
+        });
+
+        if (!response?.fileUrl) throw new Error('No file URL received');
+
+        // Trigger browser download
+        const link = document.createElement('a');
+        link.href = response.fileUrl;
+        link.download = response.fileName || 'provento-teams-app.zip';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Show success notification
+        if (process.client) {
+          const { showSuccess } = useNotification();
+          showSuccess('Teams app package download started successfully.');
+        }
+      } catch (error) {
+        // Handle authentication errors first
+        if (!await this.handleAuthError(error)) {
+          this.error = this.handleError(error, 'Failed to download Teams app package');
+
+          // Show error notification
+          if (process.client) {
+            const { showError } = useNotification();
+            showError(this.error);
+          }
+        }
+      } finally {
+        this.manifestDownloading = false;
       }
     },
   },
