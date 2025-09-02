@@ -8,6 +8,8 @@ export const useIntegrationsStore = defineStore('integrations', {
     loading: false,
     error: null as string | null,
     lastFetched: null as Date | null,
+    slackAppDetails: null as any | null,
+    slackAppStatus: true,
   }),
 
   getters: {
@@ -302,6 +304,95 @@ export const useIntegrationsStore = defineStore('integrations', {
             this.fetchOverview()
           }
         }, intervalMs)
+      }
+    },
+
+    // Slack integration methods
+    async fetchSlackAppDetails() {
+      try {
+        this.loading = true;
+        this.slackAppStatus = true;
+
+        const response = await $fetch<{ statusCode: number; message: string; data: any }>('/api/integrations/slack/details', {
+          headers: this.getAuthHeaders(),
+        });
+
+        this.slackAppDetails = response.data;
+        this.slackAppStatus = response.data?.status === 'active' ? false : true;
+        return response.data;
+      } catch (error) {
+        this.error = this.handleError(error, 'Failed to fetch Slack app details');
+        // Reset details on error
+        this.slackAppDetails = null;
+        this.slackAppStatus = true;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async slackOauthRedirect(code: string, state: string) {
+      try {
+        this.loading = true;
+
+        if (!state) throw new Error('Missing state token');
+
+        const response = await $fetch<{ statusCode: number; message: string; data: any }>(
+          '/api/integrations/slack/connect',
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${state}` },
+            body: { code, state },
+          }
+        );
+
+        await this.fetchSlackAppDetails();
+
+        // Show success notification
+        const { $toast } = useNuxtApp();
+        if ($toast) {
+          $toast.success('Slack connected successfully!');
+        }
+
+        return response.data;
+      } catch (error) {
+        this.error = this.handleError(error, 'Failed to connect Slack');
+
+        // Show error notification
+        const { $toast } = useNuxtApp();
+        if ($toast) {
+          $toast.error(this.error);
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async disconnectSlackApp() {
+      try {
+        this.loading = true;
+
+        await $fetch('/api/integrations/slack/disconnect', {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+        });
+
+        await this.fetchSlackAppDetails();
+
+        // Show success notification
+        const { $toast } = useNuxtApp();
+        if ($toast) {
+          $toast.success('Slack disconnected successfully!');
+        }
+      } catch (error) {
+        this.error = this.handleError(error, 'Failed to disconnect Slack');
+
+        // Show error notification
+        const { $toast } = useNuxtApp();
+        if ($toast) {
+          $toast.error(this.error);
+        }
+      } finally {
+        this.loading = false;
       }
     },
   },
