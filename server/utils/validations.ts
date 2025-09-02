@@ -56,7 +56,9 @@ export const getPasswordRegex = () =>
 // Signin validation schema
 export const SigninValidation = z.object({
   email: z.string().email('Invalid email format').max(255, 'Email too long'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string()
+    .min(1, 'Password is required')
+    .refine((val) => val.trim().length > 0, 'Password cannot be empty or only whitespace'),
 })
 
 // Signup validation schema

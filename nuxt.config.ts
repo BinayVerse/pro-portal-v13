@@ -29,7 +29,6 @@ export default defineNuxtConfig({
     sendgridSalesTeamEmails: process.env.NUXT_SENDGRID_SALES_TEAM_EMAILS,
     googleCaptchaSecretKey: process.env.NUXT_GOOGLE_CAPTCHA_SECRET_KEY,
     jwtToken: process.env.NUXT_JWT_TOKEN,
-    // googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID,
     googleClientSecret: process.env.NUXT_GOOGLE_CLIENT_SECRET,
     microsoftAppPassword: process.env.NUXT_MICROSOFT_APP_PASSWORD,
     googleApplicationCredentialsBase64: process.env.NUXT_GOOGLE_APPLICATION_CREDENTIALS_BASE64,
@@ -101,6 +100,12 @@ export default defineNuxtConfig({
         base: './.data',
       },
     },
+    routeRules: {
+      // Prevent caching for HTML pages (SSR or static)
+      '/**': { headers: { 'cache-control': 'no-cache, no-store, must-revalidate' } },
+      // Allow caching of assets (hashed filenames change on each build)
+      '/_nuxt/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } }
+    }
   },
 
   // Router options to fix manifest issues
@@ -114,6 +119,7 @@ export default defineNuxtConfig({
   experimental: {
     payloadExtraction: false,
     writeEarlyHints: false,
+    typedPages: true,
   },
 
   // App Config
@@ -132,14 +138,4 @@ export default defineNuxtConfig({
       link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
     },
   },
-
-  // Additional runtime config merged with the above
-
-  // Build
-  build: {
-    transpile: ['@headlessui/vue'],
-  },
-
-  // Disable SSR for easier development
-  ssr: false,
 })

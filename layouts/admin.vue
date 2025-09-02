@@ -97,7 +97,7 @@
                 variant="ghost"
                 justify="start"
                 size="sm"
-                icon="mdi:slack"
+                icon="i-mdi:slack"
                 :color="$route.name === 'admin-integrations-slack' ? 'primary' : 'gray'"
                 class="w-full"
               >
@@ -108,7 +108,7 @@
                 variant="ghost"
                 justify="start"
                 size="sm"
-                icon="mdi:microsoft-teams"
+                icon="i-mdi:microsoft-teams"
                 :color="$route.name === 'admin-integrations-teams' ? 'primary' : 'gray'"
                 class="w-full"
               >
@@ -119,7 +119,7 @@
                 variant="ghost"
                 justify="start"
                 size="sm"
-                icon="mdi:whatsapp"
+                icon="i-mdi:whatsapp"
                 :color="$route.name === 'admin-integrations-whatsapp' ? 'primary' : 'gray'"
                 class="w-full"
               >
@@ -130,7 +130,7 @@
                 variant="ghost"
                 justify="start"
                 size="sm"
-                icon="heroicons:device-phone-mobile"
+                icon="i-heroicons:chat-bubble-left-ellipsis"
                 :color="$route.name === 'admin-integrations-imessage' ? 'primary' : 'gray'"
                 class="w-full"
               >

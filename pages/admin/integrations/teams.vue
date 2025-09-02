@@ -142,45 +142,6 @@
         <button @click="connectTeams" class="btn-primary">Connect Microsoft Teams</button>
       </div>
 
-      <!-- Action Buttons -->
-      <div v-if="config.isConnected" class="flex gap-4">
-        <button @click="testConnection" class="btn-secondary">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          Test Connection
-        </button>
-
-        <button @click="openTeams" class="btn-secondary">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-            ></path>
-          </svg>
-          Open Teams
-        </button>
-
-        <button @click="showDisconnectModal = true" class="btn-destructive">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            ></path>
-          </svg>
-          Disconnect
-        </button>
-      </div>
-
       <!-- Disconnect Confirmation Modal -->
       <div
         v-if="showDisconnectModal"

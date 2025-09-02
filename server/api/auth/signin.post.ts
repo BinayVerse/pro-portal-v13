@@ -21,6 +21,11 @@ export default defineEventHandler(async (event) => {
     const email = body.email?.trim().toLowerCase();
     const password = body.password?.trim();
 
+    // Additional validation for trimmed password
+    if (!password || password.length === 0) {
+      throw new CustomError('Password cannot be empty.', 400);
+    }
+
     const userResult = await query(
       'SELECT * FROM users WHERE email = $1 AND role_id IN (0, 1)',
       [email]
@@ -45,6 +50,11 @@ export default defineEventHandler(async (event) => {
 
     if (!user) {
       throw new CustomError('Your account access has been restricted. Please contact your administrator for assistance.', 403);
+    }
+
+    // Check if user has a password set
+    if (!user.password || user.password.length === 0) {
+      throw new CustomError('Your account password is not set. Please contact support or reset your password.', 403);
     }
 
     const validPassword = await bcrypt.compare(password, user.password);

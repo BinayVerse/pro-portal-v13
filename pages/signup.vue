@@ -229,11 +229,11 @@
           />
           <label for="terms" class="ml-2 text-sm text-gray-300">
             I agree to the
-            <NuxtLink to="/terms" class="text-primary-400 hover:text-primary-300"
+            <NuxtLink to="/terms-of-service" class="text-primary-400 hover:text-primary-300"
               >Terms of Service</NuxtLink
             >
             and
-            <NuxtLink to="/privacy" class="text-primary-400 hover:text-primary-300"
+            <NuxtLink to="/privacy-policy" class="text-primary-400 hover:text-primary-300"
               >Privacy Policy</NuxtLink
             >
           </label>

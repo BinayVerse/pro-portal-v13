@@ -44,16 +44,18 @@ export default defineEventHandler(async (event) => {
 
     const { org_id } = userResult.rows[0]
 
-    // Fetch documents with category information
+    // Fetch documents with category information and user who added them
     const documentResults = await query(
-      `SELECT 
-          d.id, d.name, d.doc_type, d.document_link, d.content_type, 
+      `SELECT
+          d.id, d.name, d.doc_type, d.document_link, d.content_type,
           d.file_size, d.status, d.updated_at, d.file_category, d.description,
-          d.is_summarized AS summarized, d.summary,
-          COALESCE(c.name, 'Uncategorized') AS category_name
+          d.is_summarized AS summarized, d.summary, d.added_by,
+          COALESCE(c.name, 'Uncategorized') AS category_name,
+          COALESCE(u.name, 'Unknown User') AS uploaded_by_name
         FROM organization_documents d
-        LEFT JOIN document_category c 
+        LEFT JOIN document_category c
           ON d.file_category IS NOT NULL AND d.file_category::text = c.id::text
+        LEFT JOIN users u ON d.added_by = u.user_id
         WHERE d.org_id = $1
         ORDER BY d.updated_at DESC;
         `,
@@ -115,7 +117,7 @@ export default defineEventHandler(async (event) => {
       type: getFileType(doc.content_type, doc.name),
       size: formatFileSize(doc.file_size || 0),
       status: doc.status,
-      uploadedBy: 'User', // You might want to add a user lookup here
+      uploadedBy: doc.uploaded_by_name || 'Unknown User',
       lastUpdated: doc.updated_at
         ? dayjs.utc(doc.updated_at).tz(userTimezone).format('DD/MM/YYYY, hh:mm A')
         : 'Unknown',

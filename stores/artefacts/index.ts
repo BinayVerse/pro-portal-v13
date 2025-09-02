@@ -14,6 +14,7 @@ export const useArtefactsStore = defineStore('artefacts', {
     categoryError: null as string | null,
     // Artefacts list and stats
     artefacts: [] as any[],
+    previousArtefacts: [] as any[], // Store previous state to detect changes
     stats: {
       totalArtefacts: 0,
       processedArtefacts: 0,
@@ -22,6 +23,14 @@ export const useArtefactsStore = defineStore('artefacts', {
     },
     isLoadingArtefacts: false,
     artefactsError: null as string | null,
+    // Auto-processing state
+    pollingInterval: null as NodeJS.Timeout | null,
+    isAutoProcessingEnabled: false,
+    summarizingDocs: new Set<number>(),
+    attemptedSummarizations: new Set<number>(),
+    pollingIntervalMs: 10000, // Start with 10 seconds
+    maxPollingIntervalMs: 60000, // Max 60 seconds
+    minPollingIntervalMs: 5000, // Min 5 seconds
   }),
 
   getters: {
@@ -40,6 +49,39 @@ export const useArtefactsStore = defineStore('artefacts', {
     },
     isArtefactsLoading: (state): boolean => state.isLoadingArtefacts,
     getArtefactsError: (state): string | null => state.artefactsError,
+    // Auto-processing getters
+    isAutoProcessingActive: (state): boolean => state.isAutoProcessingEnabled && !!state.pollingInterval,
+    getSummarizingDocs: (state): Set<number> => state.summarizingDocs,
+    isDocumentBeingSummarized: (state) => (docId: number): boolean => state.summarizingDocs.has(docId),
+    pendingSummarizations: (state): any[] => {
+      return (state.artefacts || []).filter(doc =>
+        doc.status === 'processed' &&
+        doc.summarized === 'No' &&
+        !state.summarizingDocs.has(doc.id) &&
+        !state.attemptedSummarizations.has(doc.id)
+      )
+    },
+    allDocumentsProcessed: (state): boolean => {
+      const unprocessedDocs = (state.artefacts || []).filter(doc => doc.status !== 'processed')
+      return unprocessedDocs.length === 0
+    },
+    allDocumentsSummarized: (state): boolean => {
+      const unsummarizedDocs = (state.artefacts || []).filter(doc =>
+        doc.status === 'processed' && doc.summarized === 'No'
+      )
+      return unsummarizedDocs.length === 0
+    },
+    processingProgress: (state): { processed: number; total: number; percentage: number } => {
+      const total = state.artefacts.length
+      const processed = (state.artefacts || []).filter(doc =>
+        doc.status === 'processed' && doc.summarized === 'Yes'
+      ).length
+      return {
+        processed,
+        total,
+        percentage: total > 0 ? Math.round((processed / total) * 100) : 0
+      }
+    },
   },
 
   actions: {
@@ -384,6 +426,9 @@ export const useArtefactsStore = defineStore('artefacts', {
           throw new Error(response.message)
         }
 
+        // Store previous state before updating
+        const previousArtefacts = [...this.artefacts]
+
         this.artefacts = response.data.artefacts || []
         this.stats = response.data.stats || {
           totalArtefacts: 0,
@@ -391,6 +436,13 @@ export const useArtefactsStore = defineStore('artefacts', {
           totalCategories: 0,
           totalSize: '0 Bytes'
         }
+
+        // Detect newly processed documents and auto-summarize them
+        if (previousArtefacts.length > 0) {
+          this.checkForNewlyProcessedDocuments(previousArtefacts, this.artefacts)
+        }
+
+        this.previousArtefacts = [...this.artefacts]
 
         return {
           success: true,
@@ -682,6 +734,238 @@ export const useArtefactsStore = defineStore('artefacts', {
           exists: false,
           message: this.handleError(error, 'Failed to check file existence')
         }
+      }
+    },
+
+    // Check if multiple files exist using unified endpoint
+    async checkFilesExistBulk(fileNames: string[]) {
+      try {
+        const token = process.client ? localStorage.getItem('authToken') : null
+        if (!token) {
+          throw new Error('Authentication required')
+        }
+
+        const response = await $fetch<{
+          statusCode: number
+          status: string
+          results: Array<{
+            originalFileName: string
+            cleanedFileName: string
+            exists: boolean
+            fileInfo?: {
+              id: number
+              name: string
+              category: string
+              lastUpdated: string
+            }
+          }>
+        }>('/api/artefacts/check-exists', {
+          method: 'POST',
+          body: { fileNames },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.status === 'error') {
+          throw new Error('Failed to check files existence')
+        }
+
+        return {
+          success: true,
+          results: response.results
+        }
+      } catch (error: any) {
+        // Handle authentication errors
+        if (error.statusCode === 401 || error.response?.status === 401) {
+          if (process.client) {
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('authUser')
+          }
+          await navigateTo('/login')
+          throw new Error('Session expired. Please log in again.')
+        }
+
+        return {
+          success: false,
+          results: [],
+          message: this.handleError(error, 'Failed to check files existence')
+        }
+      }
+    },
+
+    // Auto-processing methods
+    startAutoProcessing() {
+      if (this.pollingInterval) {
+        this.stopAutoProcessing()
+      }
+
+      this.isAutoProcessingEnabled = true
+      this.startPolling()
+    },
+
+    stopAutoProcessing() {
+      this.isAutoProcessingEnabled = false
+      if (this.pollingInterval) {
+        clearInterval(this.pollingInterval)
+        this.pollingInterval = null
+      }
+
+      // Clear processing state but keep attempted summarizations to avoid retries
+      this.summarizingDocs.clear()
+    },
+
+    startPolling() {
+      if (!this.isAutoProcessingEnabled || this.pollingInterval) return
+
+      this.pollingInterval = setInterval(async () => {
+        try {
+          await this.fetchArtefacts()
+
+          // Stop polling only if all documents are processed AND summarized
+          if (this.allDocumentsProcessed && this.allDocumentsSummarized) {
+            this.stopAutoProcessing()
+          } else {
+            this.adjustPollingInterval()
+          }
+        } catch (error) {
+          // Silent error handling for polling
+        }
+      }, this.pollingIntervalMs)
+    },
+
+    checkForNewlyProcessedDocuments(previousDocs: any[], currentDocs: any[]) {
+      if (!this.isAutoProcessingEnabled) return
+
+      // Find documents that became 'processed' in this update
+      const newlyProcessedDocs = currentDocs.filter(currentDoc => {
+        const previousDoc = previousDocs.find(prev => prev.id === currentDoc.id)
+        return previousDoc &&
+               previousDoc.status !== 'processed' &&
+               currentDoc.status === 'processed' &&
+               currentDoc.summarized === 'No' &&
+               !this.summarizingDocs.has(currentDoc.id) &&
+               !this.attemptedSummarizations.has(currentDoc.id)
+      })
+
+      if (newlyProcessedDocs.length > 0) {
+        // Start summarization for newly processed documents
+        for (const doc of newlyProcessedDocs) {
+          this.summarizingDocs.add(doc.id)
+          this.attemptedSummarizations.add(doc.id)
+
+          // Show notification when summarization starts
+          if (process.client) {
+            const { showInfo } = useNotification()
+            showInfo(`Auto summarization started for "${doc.name}"`, {
+              title: 'Summarization Started',
+              duration: 4000
+            })
+          }
+
+          // Process in background
+          this.processSingleSummarization(doc.id).finally(() => {
+            this.summarizingDocs.delete(doc.id)
+            // Force reactivity update
+            this.summarizingDocs = new Set(this.summarizingDocs)
+          })
+
+          // Add small delay between starting each summarization
+          setTimeout(() => {}, 500)
+        }
+      }
+    },
+
+
+    async processSingleSummarization(docId: number) {
+      try {
+        const result = await this.summarizeArtefact(docId)
+
+        if (result.success) {
+          // Update document status locally for immediate UI feedback
+          const docIndex = this.artefacts.findIndex(a => a.id === docId)
+          if (docIndex !== -1) {
+            this.artefacts[docIndex].summarized = 'Yes'
+            this.artefacts[docIndex].summary = 'Summary available'
+          }
+
+          // Refresh data to get updated status from server
+          await this.fetchArtefacts()
+
+          // Show success notification
+          if (process.client) {
+            const { showSuccess } = useNotification()
+            const doc = this.artefacts.find(a => a.id === docId)
+            const docName = doc?.name || `Document ${docId}`
+            showSuccess(`${docName} summarized successfully`)
+          }
+        } else {
+          // Show error notification
+          if (process.client) {
+            const { showError } = useNotification()
+            const doc = this.artefacts.find(a => a.id === docId)
+            const docName = doc?.name || `Document ${docId}`
+            showError(`Failed to summarize ${docName}: ${result.message}`)
+          }
+        }
+      } catch (error: any) {
+        // Show error notification
+        if (process.client) {
+          const { showError } = useNotification()
+          const doc = this.artefacts.find(a => a.id === docId)
+          const docName = doc?.name || `Document ${docId}`
+          showError(`Error summarizing ${docName}: ${error.message || error}`)
+        }
+      }
+    },
+
+    adjustPollingInterval() {
+      const unprocessedCount = this.artefacts.filter(doc => doc.status !== 'processed').length
+      const processingCount = this.artefacts.filter(doc => doc.status === 'processing').length
+
+      // Adjust interval based on processing workload
+      if (unprocessedCount > 10 || processingCount > 5) {
+        // High workload - poll more frequently
+        this.pollingIntervalMs = Math.max(this.minPollingIntervalMs, this.pollingIntervalMs - 2000)
+      } else if (unprocessedCount < 3 && processingCount === 0) {
+        // Low workload - poll less frequently
+        this.pollingIntervalMs = Math.min(this.maxPollingIntervalMs, this.pollingIntervalMs + 3000)
+      }
+
+      // Restart polling with new interval if it changed significantly
+      const currentInterval = this.pollingIntervalMs
+      if (this.pollingInterval && Math.abs(currentInterval - this.pollingIntervalMs) > 2000) {
+        clearInterval(this.pollingInterval)
+        this.pollingInterval = null
+        this.startPolling()
+      }
+    },
+
+    sleep(ms: number): Promise<void> {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    },
+
+    resetAutoProcessing() {
+      this.stopAutoProcessing()
+      this.summarizingDocs.clear()
+      this.attemptedSummarizations.clear()
+      this.pollingIntervalMs = 10000 // Reset to default
+    },
+
+    // Get processing status for UI
+    getProcessingStatus() {
+      const unprocessedCount = this.artefacts.filter(doc => doc.status !== 'processed').length
+      const pendingSummarizations = this.pendingSummarizations.length
+
+      return {
+        isActive: this.isAutoProcessingActive,
+        unprocessedCount,
+        pendingCount: pendingSummarizations,
+        processingCount: this.summarizingDocs.size,
+        progress: this.processingProgress,
+        pollingInterval: this.pollingIntervalMs / 1000, // in seconds
+        allProcessed: this.allDocumentsProcessed,
+        allComplete: this.allDocumentsProcessed && this.allDocumentsSummarized,
       }
     },
   },

@@ -2,7 +2,16 @@
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     <!-- Total Documents -->
     <div class="bg-dark-800 rounded-lg p-6 border border-dark-700">
-      <div class="flex items-center justify-between">
+      <div v-if="loading" class="animate-pulse">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="h-4 bg-gray-600 rounded w-24 mb-2"></div>
+            <div class="h-8 bg-gray-600 rounded w-16"></div>
+          </div>
+          <div class="w-12 h-12 bg-gray-600 rounded-lg"></div>
+        </div>
+      </div>
+      <div v-else class="flex items-center justify-between">
         <div>
           <p class="text-gray-400 text-sm font-medium">Total Artefacts</p>
           <p class="text-3xl font-bold text-white mt-2">{{ totalArtefacts }}</p>
@@ -15,7 +24,16 @@
 
     <!-- Processed -->
     <div class="bg-dark-800 rounded-lg p-6 border border-dark-700">
-      <div class="flex items-center justify-between">
+      <div v-if="loading" class="animate-pulse">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="h-4 bg-gray-600 rounded w-20 mb-2"></div>
+            <div class="h-8 bg-gray-600 rounded w-16"></div>
+          </div>
+          <div class="w-12 h-12 bg-gray-600 rounded-lg"></div>
+        </div>
+      </div>
+      <div v-else class="flex items-center justify-between">
         <div>
           <p class="text-gray-400 text-sm font-medium">Processed</p>
           <p class="text-3xl font-bold text-white mt-2">{{ processedArtefacts }}</p>
@@ -28,7 +46,16 @@
 
     <!-- Categories -->
     <div class="bg-dark-800 rounded-lg p-6 border border-dark-700">
-      <div class="flex items-center justify-between">
+      <div v-if="loading" class="animate-pulse">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="h-4 bg-gray-600 rounded w-20 mb-2"></div>
+            <div class="h-8 bg-gray-600 rounded w-16"></div>
+          </div>
+          <div class="w-12 h-12 bg-gray-600 rounded-lg"></div>
+        </div>
+      </div>
+      <div v-else class="flex items-center justify-between">
         <div>
           <p class="text-gray-400 text-sm font-medium">Categories</p>
           <p class="text-3xl font-bold text-white mt-2">{{ totalCategories }}</p>
@@ -41,7 +68,16 @@
 
     <!-- Total Size -->
     <div class="bg-dark-800 rounded-lg p-6 border border-dark-700">
-      <div class="flex items-center justify-between">
+      <div v-if="loading" class="animate-pulse">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="h-4 bg-gray-600 rounded w-20 mb-2"></div>
+            <div class="h-8 bg-gray-600 rounded w-16"></div>
+          </div>
+          <div class="w-12 h-12 bg-gray-600 rounded-lg"></div>
+        </div>
+      </div>
+      <div v-else class="flex items-center justify-between">
         <div>
           <p class="text-gray-400 text-sm font-medium">Total Size</p>
           <p class="text-3xl font-bold text-white mt-2">{{ totalSize }}</p>
@@ -60,6 +96,7 @@ interface Props {
   processedArtefacts: number
   totalCategories: number
   totalSize: string
+  loading?: boolean
 }
 
 defineProps<Props>()

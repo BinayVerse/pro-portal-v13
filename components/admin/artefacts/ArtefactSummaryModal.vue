@@ -57,7 +57,9 @@
         <div class="bg-dark-700 rounded-lg p-4">
           <p class="text-gray-300 text-sm leading-relaxed">
             {{
-              artefact?.status === 'processed'
+              artefact?.summarized && artefact?.summary
+                ? artefact.summary
+                : artefact?.status === 'processed'
                 ? `This ${artefact?.type} document contains comprehensive information about ${artefact?.category?.toLowerCase()} matters. The AI analysis reveals key insights and important data points that can be leveraged for decision-making processes. Based on the document structure and content patterns, this artefact provides valuable resource material for organizational operations and strategic planning.`
                 : 'Summary is not available yet. The document is still being processed by our AI system. Please check back once the processing is complete.'
             }}
@@ -66,15 +68,8 @@
       </div>
 
       <div class="flex justify-end mt-6 space-x-3">
-        <UButton @click="$emit('close')" variant="ghost" color="gray"> 
-          Close 
-        </UButton>
-        <UButton
-          @click="$emit('download', artefact)"
-          icon="heroicons:arrow-down-tray"
-          color="primary"
-        >
-          Download
+        <UButton @click="$emit('close')" variant="outline" color="gray">
+          Close
         </UButton>
       </div>
     </div>
@@ -93,6 +88,8 @@ interface Artefact {
   uploadedBy: string
   lastUpdated: string
   artefact: string
+  summarized?: boolean
+  summary?: string
 }
 
 interface Props {
@@ -105,7 +102,6 @@ defineProps<Props>()
 defineEmits<{
   'update:isOpen': [value: boolean]
   close: []
-  download: [artefact: Artefact | null]
 }>()
 
 // Helper methods

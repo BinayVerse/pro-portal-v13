@@ -1,8 +1,11 @@
+import { useAuthStore } from '~/stores/auth/index'
+
 export const useAuth = () => {
   const authStore = useAuthStore()
 
   // Computed properties
   const user = computed(() => authStore.user)
+  const token = computed(() => authStore.token)
   const isAuthenticated = computed(() => authStore.isAuthenticated)
   const isAdmin = computed(() => authStore.isAdmin)
   const loading = computed(() => authStore.loading)
@@ -10,17 +13,16 @@ export const useAuth = () => {
 
   // Actions
   const login = async (credentials: { email: string; password: string; rememberMe?: boolean }) => {
-    const result = await authStore.login(credentials)
+    const result = await authStore.signIn(credentials)
     return result
   }
 
   const logout = async () => {
-    await authStore.logout()
-    await navigateTo('/login')
+    await authStore.signOut()
   }
 
   const register = async (data: any) => {
-    return await authStore.register(data)
+    return await authStore.signup(data)
   }
 
   const checkAuth = async () => {
@@ -42,29 +44,30 @@ export const useAuth = () => {
       navigateTo('/login')
       return false
     }
-    
+
     if (!isAdmin.value) {
       navigateTo('/') // Redirect to home if not admin
       return false
     }
-    
+
     return true
   }
 
   // Initialize auth on client-side
-  onMounted(() => {
-    authStore.initializeAuth()
-    checkAuth()
+  onMounted(async () => {
+    await authStore.initializeAuth()
+    await checkAuth()
   })
 
   return {
     // State
     user,
+    token,
     isAuthenticated,
     isAdmin,
     loading,
     error,
-    
+
     // Actions
     login,
     logout,

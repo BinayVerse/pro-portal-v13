@@ -52,40 +52,18 @@
           <div v-html="viewContent" class="prose prose-sm max-w-none dark:prose-invert"></div>
         </div>
 
-        <!-- Fallback Download -->
+        <!-- Fallback View -->
         <div v-else class="flex items-center justify-center h-full">
           <div class="text-center">
             <UIcon name="i-heroicons-document" class="w-8 h-8 text-gray-400 mx-auto mb-4" />
             <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to preview this file type.</p>
-            <UButton
-              v-if="fileUrl"
-              :href="fileUrl"
-              target="_blank"
-              color="primary"
-              icon="i-heroicons-arrow-down-tray"
-            >
-              Download File
-            </UButton>
           </div>
         </div>
       </div>
 
       <!-- Footer -->
       <div class="flex-shrink-0 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-        <div class="flex justify-between items-center">
-          <div class="flex space-x-2">
-            <UButton
-              v-if="fileUrl"
-              :href="fileUrl"
-              target="_blank"
-              color="gray"
-              variant="outline"
-              icon="i-heroicons-arrow-down-tray"
-              size="sm"
-            >
-              Download
-            </UButton>
-          </div>
+        <div class="flex justify-end items-center">
           <UButton @click="closeModal" color="gray" variant="outline"> Close </UButton>
         </div>
       </div>
@@ -178,7 +156,7 @@ const renderContentByFileType = async (fileType: string, fileUrl: string) => {
   viewContent.value = null
   try {
     if (fileType === 'url') {
-      viewContent.value = `<p>Unable to preview this URL. <a href="${fileUrl}" target="_blank" class="text-primary-400 hover:text-primary-300">view the URL from here</a>.</p>`
+      viewContent.value = `<p>Unable to preview this URL.</p>`
       return
     }
 
@@ -252,10 +230,10 @@ const renderContentByFileType = async (fileType: string, fileUrl: string) => {
               viewContent.value = `<div style="height: calc(100vh - 190px); overflow-y: auto; margin: 20px;"><div style="padding: 1rem; white-space: pre-wrap; background: #1e293b; color: #e2e8f0; border-radius: 0.375rem;">${result.value}</div></div>`
             })
             .catch((err) => {
-              viewContent.value = `<p>Failed to load the file. <a href="${fileUrl}" download class="text-primary-400 hover:text-primary-300">Download the file here</a>.</p>`
+              viewContent.value = `<p>Failed to load the file.</p>`
             })
         } catch (err) {
-          viewContent.value = `<p>Failed to load the file. <a href="${fileUrl}" download class="text-primary-400 hover:text-primary-300">Download the file here</a>.</p>`
+          viewContent.value = `<p>Failed to load the file.</p>`
         }
         break
       }
@@ -275,10 +253,10 @@ const renderContentByFileType = async (fileType: string, fileUrl: string) => {
         break
 
       default:
-        viewContent.value = `<p>Unable to preview this file. <a href="${fileUrl}" class="text-primary-400 hover:text-primary-300" download>Download the file here</a>.</p>`
+        viewContent.value = `<p>Unable to preview this file.</p>`
     }
   } catch (error) {
-    viewContent.value = `<p>Failed to load the file. <a href="${fileUrl}" download class="text-primary-400 hover:text-primary-300">Download the file here</a>.</p>`
+    viewContent.value = `<p>Failed to load the file.</p>`
   }
 }
 

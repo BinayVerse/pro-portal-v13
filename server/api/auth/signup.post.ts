@@ -107,12 +107,34 @@ export default defineEventHandler(async (event) => {
       data: user.rows[0],
     };
   } catch (error: unknown) {
+    console.error('Signup error:', error);
+
     if (error instanceof CustomError) {
-      throw error;
+      setResponseStatus(event, error.statusCode);
+      return {
+        statusCode: error.statusCode,
+        status: 'error',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
     }
+
     if (error instanceof Error) {
-      throw new CustomError(error.message, 500);
+      setResponseStatus(event, 500);
+      return {
+        statusCode: 500,
+        status: 'error',
+        message: error.message || 'An unexpected error occurred during signup',
+        timestamp: new Date().toISOString()
+      };
     }
-    throw new CustomError('An unknown error occurred', 500);
+
+    setResponseStatus(event, 500);
+    return {
+      statusCode: 500,
+      status: 'error',
+      message: 'An unknown error occurred during signup',
+      timestamp: new Date().toISOString()
+    };
   }
 });

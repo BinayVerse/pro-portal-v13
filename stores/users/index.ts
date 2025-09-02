@@ -103,7 +103,7 @@ export const useUsersStore = defineStore('usersStore', {
     async fetchRoles() {
       this.loading = true
       try {
-        const data = await $fetch<{ data: any[] }>('/api/organization/roles', {
+        const data = await $fetch<{ data: any[] }>('/api/users/roles', {
           headers: this.getAuthHeaders(),
         })
         this.roles = data.data || []
@@ -221,27 +221,38 @@ export const useUsersStore = defineStore('usersStore', {
         const data = await $fetch<{
           status: boolean
           message: string
-          data?: any // Add data property
+          data?: any
           errors?: any[]
         }>('/api/users/upload-json', {
-          method: 'POST' as any,
+          method: 'POST',
           body: jsonData,
           headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         })
 
-        // Return the data property if it exists
         return {
           status: data.status,
           message: data.message,
-          data: data.data, // Add this line
+          data: data.data || null,
           errors: data.errors || [],
         }
       } catch (err: any) {
-        if (!this.handleAuthError(err)) {
-          const message = this.handleError(err, 'Error validating JSON')
-          return { status: false, message, errors: err?.response?.data?.errors || [] }
+        // 🔎 If it's a validation error (422), unwrap and return cleanly
+        if (err?.response?.status === 422 && err?.response?._data) {
+          const data = err.response._data
+          return {
+            status: false,
+            message: data.message || 'Validation failed',
+            data: null,
+            errors: data.errors || [],
+          }
         }
-        return { status: false, message: 'Unauthorized', errors: [] }
+
+        if (this.handleAuthError(err)) {
+          return { status: false, message: 'Unauthorized', errors: [] }
+        }
+
+        const message = this.handleError(err, 'Error validating JSON')
+        return { status: false, message, errors: [] }
       } finally {
         this.userLoading = false
       }

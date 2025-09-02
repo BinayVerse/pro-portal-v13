@@ -108,7 +108,6 @@
           >
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
             <option value="user">User</option>
           </select>
         </div>
@@ -171,8 +170,28 @@
                 <span class="text-blue-400 font-medium text-sm">{{ row.initials }}</span>
               </div>
               <div class="ml-3">
-                <div class="text-sm font-medium text-white">{{ row.name }}</div>
-                <div class="text-sm text-gray-400">{{ row.username }}</div>
+                <div class="text-sm font-medium text-white flex items-center gap-2">
+                  {{ row.name }}
+                  <UBadge
+                    v-if="row.id === authUser?.user_id"
+                    size="xs"
+                    class="bg-custom1-300 text-[10px]"
+                    :ui="{ rounded: 'rounded-full' }"
+                  >
+                    Self
+                  </UBadge>
+
+                  <!-- Primary badge -->
+                  <UBadge
+                    v-if="row.primaryContact"
+                    size="xs"
+                    class="bg-custom1-300 text-[10px]"
+                    :ui="{ rounded: 'rounded-full' }"
+                  >
+                    Primary
+                  </UBadge>
+                </div>
+                <!-- <div class="text-sm text-gray-400">{{ row.username }}</div> -->
               </div>
             </div>
           </template>
@@ -187,7 +206,6 @@
               class="inline-flex px-2 py-1 text-xs font-medium rounded-full"
               :class="{
                 'bg-purple-500/20 text-purple-400': row.role === 'admin',
-                'bg-blue-500/20 text-blue-400': row.role === 'manager',
                 'bg-gray-500/20 text-gray-400': row.role === 'user',
               }"
             >
@@ -304,9 +322,9 @@
           </UFormGroup>
 
           <!-- Role -->
-          <UFormGroup label="Role" name="role" required>
+          <UFormGroup label="Role" name="role_id" required>
             <USelect
-              v-model="userForm.role"
+              v-model="userForm.role_id"
               :options="roleOptions"
               option-attribute="label"
               value-attribute="value"
@@ -324,6 +342,7 @@
               v-model="userForm.primaryContact"
               label="Make Primary Contact"
               :ui="{ base: 'rounded bg-dark-900 border-dark-700' }"
+              @click="handlePrimaryContactToggle"
             />
           </UFormGroup>
 
@@ -390,6 +409,35 @@
             :loading="deletingUser"
             label="Delete"
             color="red"
+            class="flex-1 px-3 py-3 justify-center"
+          />
+        </div>
+      </UCard>
+    </UModal>
+
+    <!-- Confirm Primary COntact -->
+    <UModal v-model="showPrimaryContactConfirm">
+      <UCard>
+        <template #header>
+          <h3 class="text-lg font-semibold text-white">Confirm Primary Contact</h3>
+        </template>
+        <p class="text-gray-300 mb-6">{{ primaryContactConfirmMessage }}</p>
+        <div class="flex space-x-3">
+          <UButton
+            @click="
+              () => {
+                showPrimaryContactConfirm = false
+                pendingPrimaryContactChange = false
+              }
+            "
+            label="Cancel"
+            color="gray"
+            class="flex-1 px-3 py-3 justify-center"
+          />
+          <UButton
+            @click="confirmPrimaryContactChange"
+            label="Confirm"
+            color="blue"
             class="flex-1 px-3 py-3 justify-center"
           />
         </div>
@@ -496,6 +544,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { z } from 'zod'
+
 // Types
 interface ApiUser {
   user_id: string
@@ -520,6 +569,7 @@ interface MappedUser {
   name: string
   email: string
   phone: string
+  role_id: string | number
   role: string
   status: string
   initials: string
@@ -527,6 +577,7 @@ interface MappedUser {
   lastActive: string
   created: string
   tokensUsed: number
+  source: string
   primaryContact?: boolean
   isActive?: boolean
 }
@@ -539,11 +590,11 @@ interface UserStats {
 }
 
 interface UserForm {
-  id?: string
+  user_id?: string
   name: string
   email: string
   phone: string
-  role: string
+  role_id?: string
   primaryContact: boolean
   isActive: boolean
 }
@@ -556,6 +607,9 @@ definePageMeta({
 // Store
 const usersStore = useUsersStore()
 const profileStore = useProfileStore()
+const authStore = useAuthStore()
+
+const authUser = computed(() => authStore.getAuthUser)
 
 // Reactive state
 const phoneRef = ref(null)
@@ -576,12 +630,25 @@ const usersList = ref<MappedUser[]>([])
 const selectedUser = ref<MappedUser | null>(null)
 const isEditMode = ref(false)
 
+const showPrimaryContactConfirm = ref(false)
+const pendingPrimaryContactChange = ref(false)
+const primaryContactConfirmMessage = ref('')
+const isPrimaryContactConfirming = ref(false)
+
+const confirmPrimaryContactChange = async () => {
+  userForm.primaryContact = true
+  showUserModal.value = true
+  showPrimaryContactConfirm.value = false
+  pendingPrimaryContactChange.value = false
+  isPrimaryContactConfirming.value = false
+}
+
 const userForm = reactive<UserForm>({
-  id: '',
+  user_id: '',
   name: '',
   email: '',
   phone: '',
-  role: '',
+  role_id: '2', // default to 'user'
   primaryContact: false,
   isActive: true,
 })
@@ -596,6 +663,7 @@ const columns = [
   { key: 'status', label: 'Status', sortable: true },
   { key: 'lastActive', label: 'Last Active', sortable: true },
   { key: 'created', label: 'Created', sortable: true },
+  { key: 'source', label: 'Source', sortable: true },
   { key: 'tokensUsed', label: 'Tokens Used', sortable: true },
   { key: 'actions', label: 'Actions' },
 ]
@@ -634,16 +702,29 @@ const paginatedUsers = computed(() => {
   return filteredUsers.value.slice(start, end)
 })
 
-const roleOptions = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'user', label: 'User' },
-]
+const roleOptions = computed(() => {
+  console.log('Auth User in users.vue:', authUser.value)
+
+  const superAdmin = [{ value: 0, label: 'Super Admin' }]
+
+  const mappedRoles = usersStore.roles.map((role: any) => ({
+    value: role.role_id,
+    label: role.role_name,
+  }))
+
+  if (authUser.value?.role_id === 0) {
+    return [...superAdmin, ...mappedRoles]
+  } else {
+    return mappedRoles
+  }
+})
 
 const userSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(5, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  role: z.string().min(1, 'Role is required'),
+  role_id: z.union([z.string(), z.number()]).refine((val) => val !== '', {
+    message: 'Role is required',
+  }),
   primaryContact: z.boolean().optional(), // optional
   isActive: z.boolean().default(true),
 })
@@ -675,17 +756,19 @@ const stats = computed<UserStats>(() => {
 })
 
 const filteredUsers = computed(() => {
-  return usersList.value.filter((user) => {
-    const matchesSearch =
-      !searchQuery.value ||
-      user.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
+  return usersList.value
+    .filter((user) => user.role.toLowerCase() !== 'super admin')
+    .filter((user) => {
+      const matchesSearch =
+        !searchQuery.value ||
+        user.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
 
-    const matchesRole = !selectedRole.value || user.role === selectedRole.value
-    const matchesStatus = !selectedStatus.value || user.status === selectedStatus.value
+      const matchesRole = !selectedRole.value || user.role === selectedRole.value
+      const matchesStatus = !selectedStatus.value || user.status === selectedStatus.value
 
-    return matchesSearch && matchesRole && matchesStatus
-  })
+      return matchesSearch && matchesRole && matchesStatus
+    })
 })
 
 // Helper functions
@@ -719,8 +802,6 @@ const mapRole = (roleId: number, roleName?: string): string => {
   const roleMap: { [key: number]: string } = {
     1: 'admin',
     2: 'user',
-    3: 'manager',
-    4: 'user',
   }
   return roleMap[roleId] || 'user'
 }
@@ -730,6 +811,7 @@ const mapApiUserToMappedUser = (user: ApiUser): MappedUser => ({
   name: user.name,
   email: user.email,
   phone: user.contact_number || '-',
+  role_id: user.role_id,
   role: mapRole(user.role_id, user.role),
   status: user.status || 'active',
   initials: getInitials(user.name),
@@ -737,6 +819,7 @@ const mapApiUserToMappedUser = (user: ApiUser): MappedUser => ({
   lastActive: formatDate(user.updated_at),
   created: formatDate(user.added_at || user.created_at),
   tokensUsed: user.tokens_used || 0,
+  source: user.source,
   primaryContact: user.primary_contact,
   isActive: (user.status || 'active') === 'active',
 })
@@ -759,59 +842,74 @@ const loadUsers = async () => {
   }
 }
 
-const saveUser = async () => {
-  // Validate phone number (extra step since you're using LibVueTelInput)
-  if (!validatePhoneField()) {
-    return
+const handlePrimaryContactUpdate = async () => {
+  if (!userForm.primaryContact) return
+
+  // Find current primary contact in the organization
+  const currentPrimaryContact = usersStore.users.find((u) => u.primary_contact)
+
+  // If the logged-in user is currently primary, unset them
+  if (profileStore.userProfile.primary_contact) {
+    await usersStore.editUser(profileStore.userProfile.user_id, { primary_contact: false }, true)
   }
+  // If another user is primary, unset them
+  else if (currentPrimaryContact && currentPrimaryContact.user_id !== userForm.user_id) {
+    await usersStore.editUser(currentPrimaryContact.user_id, { primary_contact: false }, true)
+  }
+
+  // Optionally refresh profile or users list
+  await usersStore.fetchUsers()
+  await profileStore.fetchUserProfile()
+}
+
+const saveUser = async () => {
+  if (!validatePhoneField()) return
 
   const phoneData = phoneRef.value?.phoneData
   const phoneNumberWithCountryCode = phoneData?.number || userForm.phone || ''
 
   const payload = {
+    user_id: userForm.user_id,
     name: userForm.name,
     email: userForm.email,
     contact_number: phoneNumberWithCountryCode,
-    role: userForm.role,
+    role_id: userForm.role_id,
     primary_contact: userForm.primaryContact || false,
     status: userForm.isActive ? 'active' : 'inactive',
   }
-  console.log('payload', payload)
-  if (isEditMode.value && userForm.id) {
-    updatingUser.value = true
-    try {
-      await usersStore.editUser(userForm.id, payload)
-      await loadUsers()
-      showUserModal.value = false
-    } catch (err: any) {
-      console.error('Error updating user:', err)
-      error.value = usersStore.getUserError || 'Failed to update user'
-    } finally {
-      updatingUser.value = false
+
+  updatingUser.value = true
+  try {
+    // If editing and primary_contact is checked, handle old primary contact
+    if (isEditMode.value && userForm.primaryContact) {
+      await handlePrimaryContactUpdate()
     }
-  } else {
-    addingUser.value = true
-    try {
+
+    // Save or update user
+    if (isEditMode.value && userForm.user_id) {
+      await usersStore.editUser(userForm.user_id, payload)
+    } else {
       await usersStore.createUser(payload)
-      await loadUsers()
-      showUserModal.value = false
-      resetUserForm()
-    } catch (err: any) {
-      console.error('Error creating user:', err)
-      error.value = usersStore.getUserError || 'Failed to create user'
-    } finally {
-      addingUser.value = false
     }
+
+    await loadUsers()
+
+    showUserModal.value = false
+  } catch (err: any) {
+    console.error('Error saving user:', err)
+    error.value = usersStore.getUserError || 'Failed to save user'
+  } finally {
+    updatingUser.value = false
   }
 }
 
 // Reset form function
 const resetUserForm = () => {
-  userForm.id = ''
+  userForm.user_id = ''
   userForm.name = ''
   userForm.email = ''
   userForm.phone = ''
-  userForm.role = ''
+  userForm.role_id = ''
   userForm.primaryContact = false
   userForm.isActive = true
 
@@ -831,20 +929,16 @@ const openAddUserModal = () => {
 
 const openEditUserModal = async (user: any) => {
   isEditMode.value = true
-  console.log('user in edit modal', user)
-  console.log('user.phone', userForm)
 
   Object.assign(userForm, {
-    id: user.id,
+    user_id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role_id: user.role_id,
     phone: user.phone,
     primaryContact: user.primaryContact || false,
     isActive: user.status === 'active',
   })
-
-  // Set phone in LibVueTelInput
 
   showUserModal.value = true
 }
@@ -853,7 +947,7 @@ const closeUserModal = () => {
   showUserModal.value = false
 }
 
-// Deactivate user
+// Delete user
 const confirmDelete = async () => {
   if (!selectedUser.value) return
   deletingUser.value = true
@@ -877,6 +971,25 @@ const editUser = (user: MappedUser) => {
 const deleteUser = (user: MappedUser) => {
   selectedUser.value = user
   showDeleteUserModal.value = true
+}
+
+// Handle Primary Contact Toggle
+const handlePrimaryContactToggle = () => {
+  if (userForm.primaryContact) return // already primary
+
+  const currentPrimaryContact = usersStore.users.find((u) => u.primary_contact)
+  let message = `Setting this user as Primary Contact! Do you want to continue?`
+
+  if (profileStore.userProfile.primary_contact) {
+    message = `Setting this user as Primary Contact will remove YOU from being Primary Contact. Do you want to continue?`
+  } else if (currentPrimaryContact?.user_id !== userForm.user_id) {
+    message = `Setting this user as Primary Contact will remove "${currentPrimaryContact.name}" from being Primary Contact. Do you want to continue?`
+  }
+
+  isPrimaryContactConfirming.value = true
+  pendingPrimaryContactChange.value = true
+  primaryContactConfirmMessage.value = message
+  showPrimaryContactConfirm.value = true
 }
 
 //CSV Template
@@ -925,8 +1038,6 @@ const isViewMode = ref(true)
 const previewData = ref([])
 const showForm2 = ref(false)
 const viewContent = ref('')
-
-const REQUIRED_HEADERS = ['name', 'email', 'whatsapp_number']
 
 const openBulkUplaod = () => {
   showForm2.value = true
@@ -986,26 +1097,7 @@ const openPreview = async (file: File) => {
     // Call validation API
     const validationResponse = await usersStore.uploadAndValidateJson(parsedData as any)
 
-    // Handle unauthorized access - REMOVED THE RETURN STATEMENT
-    if (validationResponse.message === 'Unauthorized') {
-      console.log('Unauthorized access detected')
-      showError('You are not authorized to perform this action. Please check your permissions.')
-      errors.value = [
-        {
-          errorMessage: 'Unauthorized access. Please contact administrator.',
-        },
-      ]
-      // Keep these to ensure preview shows
-      showPreview.value = true
-      isViewMode.value = false
-
-      // Render the preview without validation errors (since it's an auth error, not validation errors)
-      viewContent.value = renderCSVToHTML(parsedData)
-    }
-    // Then handle validation errors
-    else if (validationResponse.errors && validationResponse.errors.length > 0) {
-      console.log('Entering validation error branch')
-
+    if (validationResponse.errors && validationResponse.errors.length > 0) {
       errors.value = validationResponse.errors.map(
         (error: { rowNumber: number; invalidFields: any[] }) => ({
           errorMessage: `Row: ${error.rowNumber} - ${error.invalidFields.map((field: { field: any; message: any }) => `${field.field}: ${field.message}`).join(', ')}`,
@@ -1015,11 +1107,12 @@ const openPreview = async (file: File) => {
       )
 
       // Show toast for each error
-      validationResponse.errors.forEach((error: { rowNumber: any; invalidFields: any[] }) => {
-        const errorMessage = `Row: ${error.rowNumber} - ${error.invalidFields.map((field: { field: any; message: any }) => `${field.field}: ${field.message}`).join(', ')}`
-        showError(errorMessage)
+      validationResponse.errors.forEach((error: { rowNumber: number; invalidFields: any[] }) => {
+        error.invalidFields.forEach((field: { field: any; message: any }) => {
+          const errorMessage = `Row: ${error.rowNumber} - ${field.field}: ${field.message}`
+          showError(errorMessage)
+        })
       })
-
       // Extract error row indices
       const errorRows = validationResponse.errors.map(
         (error: { rowNumber: number }) => error.rowNumber - 1,
@@ -1041,14 +1134,12 @@ const openPreview = async (file: File) => {
       showPreview.value = true
       isViewMode.value = true
     } else {
-      console.log('Entering success branch')
       userPreview.value = validationResponse?.data
       isViewMode.value = false
       showForm2.value = true
       viewContent.value = renderCSVToHTML(parsedData)
     }
   } catch (error) {
-    console.log('Caught error:', error)
     const errorMsg = error.message || 'An error occurred while validating the file'
     showError('An error occurred while importing the Users: ' + errorMsg)
     errors.value = [
@@ -1138,8 +1229,9 @@ const closePreviewForm = () => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   loadUsers()
+  await usersStore.fetchRoles()
 })
 
 useHead({

@@ -12,20 +12,22 @@
             <p class="text-gray-400">Connect to iMessage services</p>
           </div>
         </div>
-        <div class="flex items-center space-x-4">
-          <span
-            class="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-          >
-            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span>Disconnect</span>
-          </span>
-          <button
-            disabled
-            class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2 disabled:cursor-not-allowed"
-          >
-            <UIcon name="heroicons:link-slash" class="w-4 h-4" />
-            <span>Disconnect</span>
-          </button>
+        <div class="hidden">
+          <div class="flex items-center space-x-4">
+            <span
+              class="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+            >
+              <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span>Disconnect</span>
+            </span>
+            <button
+              disabled
+              class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2 disabled:cursor-not-allowed"
+            >
+              <UIcon name="heroicons:link-slash" class="w-4 h-4" />
+              <span>Disconnect</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -62,7 +62,7 @@
                 <NuxtLink
                   v-for="industry in industries"
                   :key="industry.slug"
-                  :to="`/solutions/${industry.slug}`"
+                  :to="industry.slug ? `/solutions/${industry.slug}` : '/solutions'"
                   class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dark-800 transition-colors duration-200"
                 >
                   {{ industry.name }}
@@ -166,7 +166,8 @@ const handleSolutionsEnter = () => {
   showSolutions.value = true
 }
 
-const industries = [
+// Reactive industries array with proper validation
+const industries = ref([
   { name: 'Education', slug: 'education' },
   { name: 'Finance & Banking', slug: 'finance-banking' },
   { name: 'Government', slug: 'government' },
@@ -175,5 +176,5 @@ const industries = [
   { name: 'Legal', slug: 'legal' },
   { name: 'Manufacturing', slug: 'manufacturing' },
   { name: 'Real Estate', slug: 'real-estate' },
-]
+].filter(industry => industry.slug && industry.name)) // Filter out any invalid entries
 </script>

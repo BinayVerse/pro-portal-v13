@@ -37,9 +37,12 @@ export default defineEventHandler(async (event) => {
       throw new CustomError("Reset token has expired", 400);
     }
 
-    const isPasswordMatch = await bcrypt.compare(cleanPassword, user.password);
-    if (isPasswordMatch) {
-      throw new CustomError("You cannot reuse your last password", 400);
+    // Check if user has a password set before comparing
+    if (user.password && user.password.length > 0) {
+      const isPasswordMatch = await bcrypt.compare(cleanPassword, user.password);
+      if (isPasswordMatch) {
+        throw new CustomError("You cannot reuse your last password", 400);
+      }
     }
 
     const hashedPassword = await bcrypt.hash(cleanPassword, 10);

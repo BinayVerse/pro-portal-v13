@@ -15,13 +15,28 @@
           <p class="text-gray-400">Connect your Slack workspace to DocChat</p>
         </div>
       </div>
-      <div>
+      <div class="flex items-center space-x-4">
         <span
           class="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
         >
           <div class="w-2 h-2 bg-green-400 rounded-full"></div>
           <span>Connected</span>
         </span>
+
+        <button
+          @click="showDisconnectModal = true"
+          class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+            ></path>
+          </svg>
+          <span>Disconnect</span>
+        </button>
       </div>
     </div>
 
@@ -97,126 +112,6 @@
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="flex items-center space-x-4">
-      <button
-        @click="testConnection"
-        class="bg-dark-800 hover:bg-dark-700 text-white px-6 py-3 rounded-lg border border-dark-700 transition-colors flex items-center space-x-2"
-      >
-        <UIcon name="heroicons:check-circle" class="w-4 h-4" />
-        <span>Test Connection</span>
-      </button>
-
-      <button
-        @click="openWorkspace"
-        class="bg-dark-800 hover:bg-dark-700 text-white px-6 py-3 rounded-lg border border-dark-700 transition-colors flex items-center space-x-2"
-      >
-        <UIcon name="heroicons:arrow-top-right-on-square" class="w-4 h-4" />
-        <span>Open Workspace</span>
-      </button>
-
-      <button
-        @click="showDisconnectModal = true"
-        class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-          ></path>
-        </svg>
-        <span>Disconnect</span>
-      </button>
-    </div>
-
-    <!-- Advanced Configuration (Optional) -->
-    <div class="bg-dark-800 rounded-lg border border-dark-700 p-6">
-      <div class="mb-6">
-        <h2 class="text-lg font-semibold text-white mb-2">Advanced Configuration</h2>
-        <p class="text-gray-400 text-sm">
-          Configure additional settings for your Slack integration
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-6">
-        <!-- Channel Settings -->
-        <div>
-          <h3 class="text-white font-medium mb-3">Channel Settings</h3>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-gray-300 text-sm">Auto-join channels</span>
-              <button
-                @click="settings.autoJoinChannels = !settings.autoJoinChannels"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                :class="settings.autoJoinChannels ? 'bg-purple-500' : 'bg-gray-600'"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  :class="settings.autoJoinChannels ? 'translate-x-6' : 'translate-x-1'"
-                ></span>
-              </button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-gray-300 text-sm">Private message support</span>
-              <button
-                @click="settings.privateMessages = !settings.privateMessages"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                :class="settings.privateMessages ? 'bg-purple-500' : 'bg-gray-600'"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  :class="settings.privateMessages ? 'translate-x-6' : 'translate-x-1'"
-                ></span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Notification Settings -->
-        <div>
-          <h3 class="text-white font-medium mb-3">Notification Settings</h3>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-gray-300 text-sm">Connection alerts</span>
-              <button
-                @click="settings.connectionAlerts = !settings.connectionAlerts"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                :class="settings.connectionAlerts ? 'bg-purple-500' : 'bg-gray-600'"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  :class="settings.connectionAlerts ? 'translate-x-6' : 'translate-x-1'"
-                ></span>
-              </button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-gray-300 text-sm">Error notifications</span>
-              <button
-                @click="settings.errorNotifications = !settings.errorNotifications"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                :class="settings.errorNotifications ? 'bg-purple-500' : 'bg-gray-600'"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  :class="settings.errorNotifications ? 'translate-x-6' : 'translate-x-1'"
-                ></span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-6 pt-6 border-t border-dark-700">
-        <button
-          class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          Save Settings
-        </button>
-      </div>
-    </div>
-
     <!-- Disconnect Confirmation Modal -->
     <div
       v-if="showDisconnectModal"
@@ -233,16 +128,16 @@
 
         <div class="flex space-x-3">
           <button
-            @click="disconnectSlack"
-            class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
-          >
-            Disconnect
-          </button>
-          <button
             @click="showDisconnectModal = false"
             class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors"
           >
             Cancel
+          </button>
+          <button
+            @click="disconnectSlack"
+            class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
+          >
+            Disconnect
           </button>
         </div>
       </div>

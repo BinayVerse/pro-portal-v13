@@ -145,17 +145,17 @@ export default defineEventHandler(async (event) => {
       // Update existing file
       const updateResult = await query(
         `UPDATE organization_documents
-        SET document_link = $1, status = $2, summary = $3, is_summarized = $4, updated_at = NOW(), file_category = $5, doc_type = 'document', content_type = $6, file_size = $7, description = $8
-        WHERE id = $9
+        SET document_link = $1, status = $2, summary = $3, is_summarized = $4, updated_at = NOW(), file_category = $5, doc_type = 'document', content_type = $6, file_size = $7, description = $8, added_by = $9
+        WHERE id = $10
         RETURNING id`,
-        [publicUrl, 'processing', null, false, categoryId, fileMimeType, parseInt(uploadedFile.size.toString(), 10), description || null, existingFile.id]
+        [publicUrl, 'processing', null, false, categoryId, fileMimeType, parseInt(uploadedFile.size.toString(), 10), description || null, userId, existingFile.id]
       )
       documentId = updateResult.rows[0].id
     } else {
       // Insert new file
       const insertFileResult = await query(
-        `INSERT INTO organization_documents (org_id, doc_type, document_link, status, file_category, name, content_type, file_size, summary, is_summarized, description)
-        VALUES ($1, 'document', $2, 'processing', $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO organization_documents (org_id, doc_type, document_link, status, file_category, name, content_type, file_size, summary, is_summarized, description, added_by)
+        VALUES ($1, 'document', $2, 'processing', $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id`,
         [
           org_id,
@@ -167,6 +167,7 @@ export default defineEventHandler(async (event) => {
           null,
           false,
           description || null,
+          userId,
         ]
       )
       documentId = insertFileResult.rows[0].id

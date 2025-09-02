@@ -949,16 +949,19 @@ const uploadFromGoogleDrive = async () => {
 
   try {
     // Check for existing files and show notification
+    const fileNames = selectedGoogleDriveFiles.value.map(file => file.name)
+    const bulkCheckResult = await artefactsStore.checkFilesExistBulk(fileNames)
+
     const existingFiles: { name: string; category: string }[] = []
-    for (const file of selectedGoogleDriveFiles.value) {
-      const fileName = file.name.replace(/\s+/g, '_')
-      const existsResult = await artefactsStore.checkFileExists(fileName)
-      if (existsResult.success && existsResult.exists) {
-        existingFiles.push({
-          name: file.name,
-          category: existsResult.fileInfo?.category || 'Unknown'
-        })
-      }
+    if (bulkCheckResult.success) {
+      bulkCheckResult.results.forEach(result => {
+        if (result.exists) {
+          existingFiles.push({
+            name: result.originalFileName,
+            category: result.fileInfo?.category || 'Unknown'
+          })
+        }
+      })
     }
 
     if (existingFiles.length > 0) {
@@ -1029,16 +1032,19 @@ const handleGoogleOAuthSignIn = async () => {
 
       try {
         // Check for existing files
+        const fileNames = selectedFiles.map(file => file.name)
+        const bulkCheckResult = await artefactsStore.checkFilesExistBulk(fileNames)
+
         const existingFiles: { name: string; category: string }[] = []
-        for (const file of selectedFiles) {
-          const fileName = file.name.replace(/\s+/g, '_')
-          const existsResult = await artefactsStore.checkFileExists(fileName)
-          if (existsResult.success && existsResult.exists) {
-            existingFiles.push({
-              name: file.name,
-              category: existsResult.fileInfo?.category || 'Unknown'
-            })
-          }
+        if (bulkCheckResult.success) {
+          bulkCheckResult.results.forEach(result => {
+            if (result.exists) {
+              existingFiles.push({
+                name: result.originalFileName,
+                category: result.fileInfo?.category || 'Unknown'
+              })
+            }
+          })
         }
 
         if (existingFiles.length > 0) {
