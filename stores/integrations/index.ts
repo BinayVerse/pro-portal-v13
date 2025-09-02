@@ -98,7 +98,7 @@ export const useIntegrationsStore = defineStore('integrations', {
           icon: 'i-heroicons:chat-bubble-left-ellipsis',
           color: 'text-gray-400',
           bgColor: 'bg-gray-500/20',
-          path: '/admin/integrations/imessage',
+          path: '/admin/integrations/i-message',
           details: null
         },
       ]

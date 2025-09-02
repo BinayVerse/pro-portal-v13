@@ -126,12 +126,12 @@
                 WhatsApp
               </UButton>
               <UButton
-                to="/admin/integrations/imessage"
+                to="/admin/integrations/i-message"
                 variant="ghost"
                 justify="start"
                 size="sm"
                 icon="i-heroicons:chat-bubble-left-ellipsis"
-                :color="$route.name === 'admin-integrations-imessage' ? 'primary' : 'gray'"
+                :color="$route.name === 'admin-integrations-i-message' ? 'primary' : 'gray'"
                 class="w-full"
               >
                 iMessage
@@ -205,7 +205,7 @@ const pageTitle = computed(() => {
     'admin-integrations-teams': 'Teams Integration',
     'admin-integrations-slack': 'Slack Integration',
     'admin-integrations-whatsapp': 'WhatsApp Integration',
-    'admin-integrations-imessage': 'iMessage Integration',
+    'admin-integrations-i-message': 'iMessage Integration',
   }
   return titles[route.name as string] || 'Admin'
 })

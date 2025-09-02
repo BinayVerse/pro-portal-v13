@@ -295,7 +295,7 @@ onMounted(async () => {
 
 // Methods
 const navigateToIntegration = (path: string) => {
-  if (path.includes('imessage')) return // Disabled for iMessage
+  if (path.includes('i-message')) return // Disabled for iMessage
   navigateTo(path)
 }
 
