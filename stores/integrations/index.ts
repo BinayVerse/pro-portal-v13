@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { IntegrationsOverview, IntegrationActivity, ApiResponse } from './types'
+import { useNotification } from '~/composables/useNotification'
 
 export const useIntegrationsStore = defineStore('integrations', {
   state: () => ({
@@ -138,10 +139,21 @@ export const useIntegrationsStore = defineStore('integrations', {
     },
 
     async handleAuthError(err: any): Promise<boolean> {
-      if (err?.statusCode === 401 || err?.response?.status === 401) {
+      // Check multiple possible 401 error patterns
+      const is401 = err?.statusCode === 401 ||
+                   err?.response?.status === 401 ||
+                   err?.status === 401 ||
+                   err?.data?.statusCode === 401 ||
+                   (err?.message && err.message.includes('401')) ||
+                   (err?.message && err.message.toLowerCase().includes('unauthorized'))
+
+      if (is401) {
+        console.log('401 Unauthorized detected, redirecting to login...')
         if (process.client) {
           localStorage.removeItem('authUser')
           localStorage.removeItem('authToken')
+          // Clear any other auth-related storage
+          localStorage.removeItem('user')
           setTimeout(() => {
             navigateTo('/login')
           }, 500)
@@ -321,7 +333,10 @@ export const useIntegrationsStore = defineStore('integrations', {
         this.slackAppStatus = response.data?.status === 'active' ? false : true;
         return response.data;
       } catch (error) {
-        this.error = this.handleError(error, 'Failed to fetch Slack app details');
+        // Handle authentication errors first
+        if (!await this.handleAuthError(error)) {
+          this.error = this.handleError(error, 'Failed to fetch Slack app details');
+        }
         // Reset details on error
         this.slackAppDetails = null;
         this.slackAppStatus = true;
@@ -348,19 +363,22 @@ export const useIntegrationsStore = defineStore('integrations', {
         await this.fetchSlackAppDetails();
 
         // Show success notification
-        const { $toast } = useNuxtApp();
-        if ($toast) {
-          $toast.success('Slack connected successfully!');
+        if (process.client) {
+          const { showSuccess } = useNotification();
+          showSuccess('Slack connected successfully!');
         }
 
         return response.data;
       } catch (error) {
-        this.error = this.handleError(error, 'Failed to connect Slack');
+        // Handle authentication errors first
+        if (!await this.handleAuthError(error)) {
+          this.error = this.handleError(error, 'Failed to connect Slack');
 
-        // Show error notification
-        const { $toast } = useNuxtApp();
-        if ($toast) {
-          $toast.error(this.error);
+          // Show error notification
+          if (process.client) {
+            const { showError } = useNotification();
+            showError(this.error);
+          }
         }
       } finally {
         this.loading = false;
@@ -379,17 +397,20 @@ export const useIntegrationsStore = defineStore('integrations', {
         await this.fetchSlackAppDetails();
 
         // Show success notification
-        const { $toast } = useNuxtApp();
-        if ($toast) {
-          $toast.success('Slack disconnected successfully!');
+        if (process.client) {
+          const { showSuccess } = useNotification();
+          showSuccess('Slack disconnected successfully!');
         }
       } catch (error) {
-        this.error = this.handleError(error, 'Failed to disconnect Slack');
+        // Handle authentication errors first
+        if (!await this.handleAuthError(error)) {
+          this.error = this.handleError(error, 'Failed to disconnect Slack');
 
-        // Show error notification
-        const { $toast } = useNuxtApp();
-        if ($toast) {
-          $toast.error(this.error);
+          // Show error notification
+          if (process.client) {
+            const { showError } = useNotification();
+            showError(this.error);
+          }
         }
       } finally {
         this.loading = false;
